@@ -1,3 +1,2 @@
-tvdatafeed
 pandas
 python-dotenv
