@@ -25,8 +25,9 @@ jobs:
 
       - name: Run script
         env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          FROM_EMAIL: ${{ secrets.CLIENT_EMAIL }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASS }}
+          TO_EMAIL: ${{ secrets.EMAIL_USER }}
         run: |
           python losers_report.py  || true
 
