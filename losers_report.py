@@ -20,13 +20,13 @@ except Exception as e:
     raise
 
 # --- Config from env ---
-FROM_EMAIL = os.getenv("FROM_EMAIL")              # e.g. you@gmail.com
+FROM_EMAIL = os.getenv("EMAIL_USER")          # sender email
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", FROM_EMAIL)
-SMTP_PASS = os.getenv("SMTP_PASS")                # app password
-TO_EMAIL = os.getenv("CLIENT_EMAIL")                  # comma-separated allowed
-RUN_TYPE = os.getenv("RUN_TYPE", "BOTH").upper()  # NOON / PM / BOTH
+SMTP_USER = os.getenv("EMAIL_USER")
+SMTP_PASS = os.getenv("EMAIL_PASS")           # app password
+TO_EMAIL  = os.getenv("CLIENT_EMAIL")         # recipient
+RUN_TYPE  = os.getenv("RUN_TYPE", "BOTH").upper()
 # Optional friendly labels
 NOON_TIME_LABEL = os.getenv("NOON_LABEL", "12:00 CET")
 PM_TIME_LABEL = os.getenv("PM_LABEL", "16:00 CET")
@@ -44,7 +44,7 @@ PM_MCAP_MAX = 400_000_000_000_000  # 400T (very large upper cap just in case)
 
 # --- Helpers ---
 def find_col(df, keywords):
-    """Return first column name whose lowercase contains any keyword."""
+    """Return the first column name whose lowercase contains any keyword."""
     lower_map = {c: c.lower() for c in df.columns}
     for k in keywords:
         for c, lc in lower_map.items():
