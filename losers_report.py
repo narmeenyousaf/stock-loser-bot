@@ -1,3 +1,4 @@
+print("🚀 Script started...")
 # losers_report.py
 """
 Fetch TradingView screener via 'tvscreener', filter, and email results.
