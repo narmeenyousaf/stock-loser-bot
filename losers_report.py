@@ -20,13 +20,13 @@ except Exception as e:
     raise
 
 # --- Config from env ---
-FROM_EMAIL = os.getenv("EMAIL_USER")          # sender email
+FROM_EMAIL = os.getenv("FROM_EMAIL")              # your email address
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("EMAIL_USER")
-SMTP_PASS = os.getenv("EMAIL_PASS")           # app password
-TO_EMAIL  = os.getenv("CLIENT_EMAIL")         # recipient
-RUN_TYPE  = os.getenv("RUN_TYPE", "BOTH").upper()
+SMTP_USER = os.getenv("SMTP_USER", FROM_EMAIL)
+SMTP_PASS = os.getenv("SMTP_PASS")                # Gmail app password
+TO_EMAIL = os.getenv("TO_EMAIL")              # comma-separated
+RUN_TYPE = os.getenv("RUN_TYPE", "BOTH").upper()
 # Optional friendly labels
 NOON_TIME_LABEL = os.getenv("NOON_LABEL", "12:00 CET")
 PM_TIME_LABEL = os.getenv("PM_LABEL", "16:00 CET")
