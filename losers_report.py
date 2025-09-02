@@ -25,7 +25,7 @@ SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", FROM_EMAIL)
 SMTP_PASS = os.getenv("SMTP_PASS")                # app password
-TO_EMAIL = os.getenv("TO_EMAIL")                  # comma-separated allowed
+TO_EMAIL = os.getenv("CLIENT_EMAIL")                  # comma-separated allowed
 RUN_TYPE = os.getenv("RUN_TYPE", "BOTH").upper()  # NOON / PM / BOTH
 # Optional friendly labels
 NOON_TIME_LABEL = os.getenv("NOON_LABEL", "12:00 CET")
