@@ -50,7 +50,7 @@ jobs:
       - name: Run script
         env:
          FROM_EMAIL: ${{ secrets.EMAIL_USER }}
-         SMTP_USER: ${{ secrets.EMAIL_USER }}
+         #SMTP_USER: ${{ secrets.EMAIL_USER }}
          SMTP_PASS: ${{ secrets.EMAIL_PASS }}
          TO_EMAIL: ${{ secrets.CLIENT_EMAIL }}
         run: |
