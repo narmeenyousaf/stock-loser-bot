@@ -22,7 +22,31 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install  --no-cache-dir -r requirements.txt
+      
+       #🔍 Debug your secrets
+      - name: Debug secrets
+        run: |
+          echo "SMTP_USER: ${{ secrets.EMAIL_USER }}"
+          echo "SMTP_PASS length: ${#SMTP_PASS}"
+        env:
+          SMTP_PASS: ${{ secrets.EMAIL_PASS }}
 
+      # 🔍 Test Gmail login
+      - name: Test Gmail login
+        run: |
+          python - <<EOF
+          import smtplib, os
+          user = os.environ.get("SMTP_USER")
+          pw = os.environ.get("SMTP_PASS")
+          try:
+              with smtplib.SMTP("smtp.gmail.com", 587) as s:
+                  s.starttls()
+                  s.login(user, pw)
+                  print("✅ Gmail login success")
+          except Exception as e:
+              print("❌ Gmail login failed:", e)
+          EOF
+      
       - name: Run script
         env:
           FROM_EMAIL: ${{ secrets.CLIENT_EMAIL }}
