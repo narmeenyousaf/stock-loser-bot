@@ -73,23 +73,25 @@ def parse_mcap(val):
     if suffix == "M":
         return num * 1e6
     return num
-    #imported for name
+#adiing this 
 import yfinance as yf
 
-_name_cache = {}
+name_cache = {}
 
-def get_full_name(sym):
-    """Return full company name for a symbol, with caching."""
-    if sym in _name_cache:
-        return _name_cache[sym]
+def get_full_name(symbol: str) -> str:
+    if not symbol:
+        return symbol
+    if symbol in name_cache:
+        return name_cache[symbol]
     try:
-        name = yf.Ticker(sym).info.get("longName", sym)
-    except:
-        name = sym
-    _name_cache[sym] = name
-    return name
-
-
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+        long_name = info.get("longName", symbol)
+        name_cache[symbol] = long_name
+        return long_name
+    except Exception as e:
+        print(f"⚠️ Could not fetch name for {symbol}: {e}")
+        return symbol
 
 
 def format_mcap(num):
@@ -115,10 +117,10 @@ def normalize_df(df):
     cols = {}
     # try common candidates
     cols['symbol'] = find_col(df, ["symbol", "ticker", "name"])  # prefer symbol
-   # cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
+    cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
     # Replace symbol with full company names
+    df["name"] = df[cols["symbol"]].apply(get_full_name))
     df["name"] = df[cols["symbol"]].apply(get_full_name)
-    cols['change'] = find_col(df, ["change", "% change", "chg"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
     cols['close'] = find_col(df, ["close", "last", "last price", "price"])
