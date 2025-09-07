@@ -73,18 +73,6 @@ def parse_mcap(val):
     if suffix == "M":
         return num * 1e6
     return num
-#adiing this 
-import yfinance as yf
-
-def safe_full_name(symbol: str) -> str:
-    """Try to fetch full company name. Never crash, always return something."""
-    try:
-        ticker = yf.Ticker(symbol)
-        return ticker.info.get("longName", symbol)
-    except Exception:
-        return symbol   # fallback
-
-
 
 def format_mcap(num):
     """Format numeric market cap back into human-friendly string."""
@@ -109,13 +97,7 @@ def normalize_df(df):
     cols = {}
     # try common candidates
     cols['symbol'] = find_col(df, ["symbol", "ticker", "name"])  # prefer symbol
-    #cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
-  if "symbol" in df.columns:
-    try:
-        df["name_full"] = df["symbol"].apply(safe_full_name)
-    except Exception as e:
-        print(f"⚠️ Name fetch skipped: {e}")
-        df["name_full"] = df["symbol"]
+    cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
     cols['close'] = find_col(df, ["close", "last", "last price", "price"])
