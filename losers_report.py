@@ -76,22 +76,14 @@ def parse_mcap(val):
 #adiing this 
 import yfinance as yf
 
-name_cache = {}
-
-def get_full_name(symbol: str) -> str:
-    if not symbol:
-        return symbol
-    if symbol in name_cache:
-        return name_cache[symbol]
+def safe_full_name(symbol: str) -> str:
+    """Try to fetch full company name. Never crash, always return something."""
     try:
         ticker = yf.Ticker(symbol)
-        info = ticker.info
-        long_name = info.get("longName", symbol)
-        name_cache[symbol] = long_name
-        return long_name
-    except Exception as e:
-        print(f"⚠️ Could not fetch name for {symbol}: {e}")
-        return symbol
+        return ticker.info.get("longName", symbol)
+    except Exception:
+        return symbol   # fallback
+
 
 
 def format_mcap(num):
@@ -117,10 +109,13 @@ def normalize_df(df):
     cols = {}
     # try common candidates
     cols['symbol'] = find_col(df, ["symbol", "ticker", "name"])  # prefer symbol
-    cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
-    # Replace symbol with full company names
-    df["name"] = df[cols["symbol"]].apply(get_full_name))
-    df["name"] = df[cols["symbol"]].apply(get_full_name)
+    #cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
+  if "symbol" in df.columns:
+    try:
+        df["name_full"] = df["symbol"].apply(safe_full_name)
+    except Exception as e:
+        print(f"⚠️ Name fetch skipped: {e}")
+        df["name_full"] = df["symbol"]
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
     cols['close'] = find_col(df, ["close", "last", "last price", "price"])
