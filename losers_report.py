@@ -97,7 +97,9 @@ def normalize_df(df):
     cols = {}
     # try common candidates
     cols['symbol'] = find_col(df, ["symbol", "ticker", "name"])  # prefer symbol
-    cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
+    import yfinance as yf
+    cols['name'] = find_col(df, ["symbol"])  # start from symbol column
+    df["name"] = df[cols["name"]].apply(lambda sym: yf.Ticker(sym).info.get("longName", sym))
     cols['change'] = find_col(df, ["change", "% change", "chg"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
