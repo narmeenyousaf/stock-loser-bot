@@ -73,13 +73,31 @@ def parse_mcap(val):
     if suffix == "M":
         return num * 1e6
     return num
+    
+def format_mcap(num):
+    """Format numeric market cap back into human-friendly string."""
+    if num is None or pd.isna(num):
+        return ""
+    try:
+        num = float(num)
+    except:
+        return str(num)
+    if num >= 1e12:
+        return f"{num/1e12:.2f}T"
+    elif num >= 1e9:
+        return f"{num/1e9:.2f}B"
+    elif num >= 1e6:
+        return f"{num/1e6:.2f}M"
+    else:
+        return f"{num:.0f}"
+
 
 def normalize_df(df):
     """Return df with standardized columns: symbol,name,change,mcap,country,close (if found)."""
     cols = {}
     # try common candidates
     cols['symbol'] = find_col(df, ["symbol", "ticker", "name"])  # prefer symbol
-    cols['name'] = find_col(df, ["name", "title"])
+    cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
     cols['change'] = find_col(df, ["change", "% change", "chg"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
@@ -150,8 +168,8 @@ def df_to_html_table(filtered, orig_df):
             "Symbol": sym,
             "Name": name,
             "Close": close,
-            "Change %": f"{change}",
-            "Market Cap": f"{mcap_raw}"
+           "Change %": f"{change:.3f}%" if change is not None else "",
+           "Market Cap": format_mcap(r.get('mcap_num'))
         })
     df_out = pd.DataFrame(rows)
     return df_out.to_html(index=False, escape=False)
