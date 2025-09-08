@@ -100,7 +100,8 @@ def normalize_df(df):
     cols['change'] = find_col(df, ["change", "% change", "chg"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
-    cols['close'] = find_col(df, ["close", "last", "last price", "price"])
+    cols['close'] = find_col(df, ["close", "last", "last price", "price", "close_price"])
+
     
     out = pd.DataFrame()
     for k, c in cols.items():
@@ -171,9 +172,9 @@ def df_to_html_table(filtered, orig_df):
         rows.append({
             "Symbol": sym,
             "Name": name,
-            "Close": close,
-           "Change %": f"{change:.3f}%" if change is not None else "",
-           "Market Cap": format_mcap(r.get('mcap_num'))
+            "Close": f"{float(close):.2f}" if close not in (None, "") else "",
+            "Change %": f"{change:.2f}%" if change is not None else "",
+            "Market Cap": format_mcap(r.get('mcap_num'))
         })
     df_out = pd.DataFrame(rows)
     return df_out.to_html(index=False, escape=False)
