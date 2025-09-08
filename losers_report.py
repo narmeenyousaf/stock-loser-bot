@@ -101,7 +101,7 @@ def normalize_df(df):
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
     cols['close'] = find_col(df, ["close", "last", "last price", "price", "close_price"])
-
+    
     
     out = pd.DataFrame()
     for k, c in cols.items():
@@ -202,10 +202,10 @@ def main():
     pm_filtered = filter_by_rules(df_norm, PM_COUNTRIES, PM_CHANGE_THRESHOLD, PM_MCAP_MIN, PM_MCAP_MAX)
 
     parts = []
-    if RUN_TYPE in ("NOON", "BOTH"):
+    if RUN_TYPE in ("NOON", "NOON"):
         parts.append(f"<h2>Market Losers — {NOON_TIME_LABEL}</h2>")
         parts.append(df_to_html_table(noon_filtered, df))
-    if RUN_TYPE in ("PM", "BOTH"):
+    if RUN_TYPE in ("PM", "PM"):
         parts.append(f"<h2>Market Losers — {PM_TIME_LABEL}</h2>")
         parts.append(df_to_html_table(pm_filtered, df))
 
