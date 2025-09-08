@@ -202,10 +202,10 @@ def main():
     pm_filtered = filter_by_rules(df_norm, PM_COUNTRIES, PM_CHANGE_THRESHOLD, PM_MCAP_MIN, PM_MCAP_MAX)
 
     parts = []
-    if RUN_TYPE in ("NOON", "NOON"):
+    if RUN_TYPE in ("NOON", "BOTH"):
         parts.append(f"<h2>Market Losers — {NOON_TIME_LABEL}</h2>")
         parts.append(df_to_html_table(noon_filtered, df))
-    if RUN_TYPE in ("PM", "PM"):
+    if RUN_TYPE in ("PM", "BOTH"):
         parts.append(f"<h2>Market Losers — {PM_TIME_LABEL}</h2>")
         parts.append(df_to_html_table(pm_filtered, df))
 
