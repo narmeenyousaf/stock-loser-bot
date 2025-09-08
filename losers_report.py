@@ -74,6 +74,21 @@ def parse_mcap(val):
         return num * 1e6
     return num
 
+#adding be namreen for full symbol
+import yfinance as yf
+
+def get_company_name(symbol):
+    """Return company full name if available, otherwise return the symbol."""
+    try:
+        ticker = yf.Ticker(symbol)
+        name = ticker.info.get("shortName")
+        if name:
+            return name
+    except Exception:
+        pass
+    return symbol
+
+
 def format_mcap(num):
     """Format numeric market cap back into human-friendly string."""
     if num is None or pd.isna(num):
@@ -99,7 +114,8 @@ def normalize_df(df):
     cols['change'] = find_col(df, ["change", "% change", "chg"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
-    cols['close'] = find_col(df, ["close", "last", "last price", "price"])
+    #cols['close'] = find_col(df, ["close", "last", "last price", "price"])
+    cols['close'] = find_col(df, ["close", "price"])
 
     out = pd.DataFrame()
     for k, c in cols.items():
@@ -195,6 +211,9 @@ def main():
     print("Starting fetch at", datetime.datetime.utcnow().isoformat(), "UTC")
     df = fetch_screener_dataframe()
     df_norm = normalize_df(df)
+    #added by narmeen
+    df_norm['name'] = df_norm['symbol'].apply(get_company_name)
+
 
     noon_filtered = filter_by_rules(df_norm, NOON_COUNTRIES, NOON_CHANGE_THRESHOLD, NOON_MCAP_MIN, NOON_MCAP_MAX)
     pm_filtered = filter_by_rules(df_norm, PM_COUNTRIES, PM_CHANGE_THRESHOLD, PM_MCAP_MIN, PM_MCAP_MAX)
