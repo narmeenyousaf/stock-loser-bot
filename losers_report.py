@@ -91,18 +91,16 @@ def format_mcap(num):
     else:
         return f"{num:.0f}"
 
-
 def normalize_df(df):
     """Return df with standardized columns: symbol,name,change,mcap,country,close (if found)."""
     cols = {}
-    # try common candidates
-    cols['symbol'] = find_col(df, ["symbol", "ticker", "name"])  # prefer symbol
+    cols['symbol'] = find_col(df, ["symbol", "ticker"])  
     cols['name'] = find_col(df, ["name", "title", "description", "short_name"])
+    cols['change'] = find_col(df, ["change", "% change", "chg"])
     cols['mcap'] = find_col(df, ["market cap", "market_cap", "marketcap", "market_cap_basic"])
     cols['country'] = find_col(df, ["country", "cnt", "exchange"])
     cols['close'] = find_col(df, ["close", "last", "last price", "price"])
 
-    # create clean columns
     out = pd.DataFrame()
     for k, c in cols.items():
         if c and c in df.columns:
@@ -110,7 +108,7 @@ def normalize_df(df):
         else:
             out[k] = None
 
-    # parse change -> numeric (some columns may be strings like '-3.12%')
+    # --- parse change safely ---
     def parse_change(v):
         if pd.isna(v): return None
         if isinstance(v, (int, float)): return float(v)
@@ -121,15 +119,21 @@ def normalize_df(df):
             m = re.search(r"-?[\d\.]+", s)
             return float(m.group(0)) if m else None
 
-    out['change_pct'] = out['change'].apply(parse_change)
-    out['mcap_num'] = out['mcap'].apply(parse_mcap)
+    if 'change' in out.columns and out['change'].notnull().any():
+        out['change_pct'] = out['change'].apply(parse_change)
+    else:
+        out['change_pct'] = pd.Series([None] * len(out))
 
-    # normalise country string
+    # --- market cap ---
+    if 'mcap' in out.columns and out['mcap'].notnull().any():
+        out['mcap_num'] = out['mcap'].apply(parse_mcap)
+    else:
+        out['mcap_num'] = pd.Series([None] * len(out))
+
     out['country_str'] = out['country'].astype(str).fillna("").str.strip()
-
-    # keep original df reference for other columns if needed
     out['_orig'] = df.index
     return out
+
 
 def fetch_screener_dataframe():
     """Use tvscreener StockScreener to get a DataFrame (pandas)."""
