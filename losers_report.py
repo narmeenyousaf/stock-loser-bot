@@ -196,6 +196,9 @@ def send_email_html(subject, html_body):
 def main():
     print("Starting fetch at", datetime.datetime.utcnow().isoformat(), "UTC")
     df = fetch_screener_dataframe()
+    print("DEBUG: Raw columns:", df.columns.tolist())
+    print("DEBUG: Sample rows:", df.head(5).to_dict())
+
     df_norm = normalize_df(df)
   
     noon_filtered = filter_by_rules(df_norm, NOON_COUNTRIES, NOON_CHANGE_THRESHOLD, NOON_MCAP_MIN, NOON_MCAP_MAX)
