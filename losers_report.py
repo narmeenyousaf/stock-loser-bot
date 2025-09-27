@@ -92,6 +92,39 @@ def format_mcap(num):
     else:
         return f"{num:.0f}"
 
+import requests
+import random
+
+def fetch_tradingview_screener():
+    """
+    Fetch fresh TradingView screener data directly (cache-busting).
+    """
+    url = "https://scanner.tradingview.com/america/scan"  # change region if needed
+    payload = {
+        "symbols": {
+            "tickers": [],
+            "query": {"types": []}
+        },
+        "columns": [
+            "name", "description", "close", "change", "market_cap_basic", "country"
+        ]
+    }
+    # Add a random param to bypass TradingView’s cache
+    full_url = f"{url}?_={random.randint(100000,999999)}"
+    r = requests.post(full_url, json=payload)
+    r.raise_for_status()
+    data = r.json()
+
+    # Convert to DataFrame
+    rows = []
+    for d in data.get("data", []):
+        values = d["d"]
+        rows.append(values)
+    # Match columns length
+    df = pd.DataFrame(rows, columns=payload["columns"])
+    return df
+
+
 def normalize_df(df):
     """Return df with standardized columns: symbol,name,change,mcap,country,close (if found)."""
     cols = {}
@@ -195,7 +228,7 @@ def send_email_html(subject, html_body):
 
 def main():
     print("Starting fetch at", datetime.datetime.utcnow().isoformat(), "UTC")
-    df = fetch_screener_dataframe()
+    df = fetch_tradingview_screener()
     print("DEBUG: Raw columns:", df.columns.tolist())
     print("DEBUG: Sample rows:", df.head(5).to_dict())
 
