@@ -10,17 +10,17 @@ import requests
 import pandas as pd
 
 # --- Config from env ---
-FROM_EMAIL = os.getenv("FROM_EMAIL")              # sender email
+FROM_EMAIL = os.getenv("FROM_EMAIL")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", FROM_EMAIL)    # SMTP username (usually same as FROM_EMAIL)
-SMTP_PASS = os.getenv("SMTP_PASS")                # Gmail app password (16 chars, NO spaces)
-TO_EMAIL = os.getenv("TO_EMAIL")                  # comma-separated recipients
+SMTP_USER = os.getenv("SMTP_USER", FROM_EMAIL)
+SMTP_PASS = os.getenv("SMTP_PASS")
+TO_EMAIL = os.getenv("TO_EMAIL")
 RUN_TYPE = os.getenv("RUN_TYPE", "BOTH").upper()  # NOON / PM / BOTH
 NOON_TIME_LABEL = os.getenv("NOON_LABEL", "12:00 CET")
 PM_TIME_LABEL = os.getenv("PM_LABEL", "16:00 CET")
 
-# --- Filters (your confirmed values) ---
+# --- Filters ---
 NOON_COUNTRIES = ["Germany", "France", "Switzerland", "United Kingdom"]
 NOON_CHANGE_THRESHOLD = -3.0
 NOON_MCAP_MIN = 3_000_000_000       # 3B
@@ -41,49 +41,36 @@ def find_col(df, keywords):
     return None
 
 def parse_mcap(val):
-    if pd.isna(val):
-        return None
-    if isinstance(val, (int, float)):
-        return float(val)
+    if pd.isna(val): return None
+    if isinstance(val, (int, float)): return float(val)
     s = str(val).strip().replace(",", "")
-    m = re.match(r"^\s*([\d\.]+)\s*([TMBtmb]?)\s*$", s)
+    m = re.match(r"^\s*([\d\.]+)\s*([TMB]?)\s*$", s)
     if not m:
         m2 = re.search(r"([\d\.]+)", s)
         return float(m2.group(1)) if m2 else None
     num = float(m.group(1))
     suffix = m.group(2).upper()
-    if suffix == "T":
-        return num * 1e12
-    if suffix == "B":
-        return num * 1e9
-    if suffix == "M":
-        return num * 1e6
+    if suffix == "T": return num * 1e12
+    if suffix == "B": return num * 1e9
+    if suffix == "M": return num * 1e6
     return num
 
 def format_mcap(num):
-    if num is None or pd.isna(num):
-        return ""
-    try:
-        num = float(num)
-    except:
-        return str(num)
-    if num >= 1e12:
-        return f"{num/1e12:.2f}T"
-    elif num >= 1e9:
-        return f"{num/1e9:.2f}B"
-    elif num >= 1e6:
-        return f"{num/1e6:.2f}M"
-    else:
-        return f"{num:.0f}"
+    if num is None or pd.isna(num): return ""
+    num = float(num)
+    if num >= 1e12: return f"{num/1e12:.2f}T"
+    elif num >= 1e9: return f"{num/1e9:.2f}B"
+    elif num >= 1e6: return f"{num/1e6:.2f}M"
+    else: return f"{num:.0f}"
 
 def normalize_df(df):
     cols = {}
     cols['symbol'] = find_col(df, ["symbol", "s", "ticker"])
     cols['name'] = find_col(df, ["description", "name", "title", "short_name"])
-    cols['change'] = find_col(df, ["change %", "change", "change_pct", "change %"])
-    cols['mcap'] = find_col(df, ["market capitalization", "market_cap_basic", "market cap", "marketcapitalization"])
-    cols['country'] = find_col(df, ["country", "cnt", "exchange"])
-    cols['close'] = find_col(df, ["price", "close", "last", "last price"])
+    cols['change'] = find_col(df, ["change %", "change", "change_pct"])
+    cols['mcap'] = find_col(df, ["market capitalization", "market_cap_basic"])
+    cols['country'] = find_col(df, ["country", "exchange"])
+    cols['close'] = find_col(df, ["price", "close", "last"])
 
     out = pd.DataFrame()
     for k, c in cols.items():
@@ -93,9 +80,8 @@ def normalize_df(df):
         if pd.isna(v): return None
         if isinstance(v, (int, float)): return float(v)
         s = str(v).strip().replace("%", "")
-        try:
-            return float(s)
-        except:
+        try: return float(s)
+        except: 
             m = re.search(r"-?[\d\.]+", s)
             return float(m.group(0)) if m else None
 
@@ -106,38 +92,31 @@ def normalize_df(df):
     return out
 
 def fetch_tradingview_screener(region):
+    """Fetch TradingView screener by region (uk, france, germany, switzerland, america)."""
     url = f"https://scanner.tradingview.com/{region}/scan"
     payload = {
         "symbols": {"tickers": [], "query": {"types": []}},
-        "columns": ["Symbol", "Name", "Description", "Price", "Change %", "Market Capitalization", "Country"]
+        "columns": [
+            "symbol", "description", "close", "change", "change_abs",
+            "market_cap_basic", "country"
+        ]
     }
     full_url = f"{url}?_={random.randint(100000,999999)}"
-    try:
-        r = requests.post(full_url, json=payload, timeout=30)
-        r.raise_for_status()
-        body = r.json()
-        data = body.get("data", [])
-        rows = []
-        for item in data:
-            symbol = item.get("s")
-            vals = item.get("d", [])
-            row = {}
-            cols = payload["columns"]
-            for i, col in enumerate(cols):
-                row[col] = vals[i] if i < len(vals) else None
-            row["Symbol"] = symbol or row.get("Symbol")
-            rows.append(row)
-        df = pd.DataFrame(rows)
-        return df
-    except Exception as e:
-        print("WARN: fetch_tradingview_screener failed:", e)
-        # fallback to tvscreener if available
-        try:
-            import tvscreener as tvs
-            ss = tvs.StockScreener()
-            return ss.get()
-        except Exception as e2:
-            raise RuntimeError("Failed to fetch screener data: " + str(e))
+    r = requests.post(full_url, json=payload, timeout=30)
+    r.raise_for_status()
+    body = r.json()
+    data = body.get("data", [])
+    rows = []
+    for item in data:
+        symbol = item.get("s")
+        vals = item.get("d", [])
+        row = {}
+        cols = payload["columns"]
+        for i, col in enumerate(cols):
+            row[col] = vals[i] if i < len(vals) else None
+        row["symbol"] = symbol or row.get("symbol")
+        rows.append(row)
+    return pd.DataFrame(rows)
 
 def filter_by_rules(df_norm, countries, change_thr, mcap_min, mcap_max):
     pattern = "|".join([re.escape(c) for c in countries])
@@ -149,14 +128,13 @@ def filter_by_rules(df_norm, countries, change_thr, mcap_min, mcap_max):
     return filtered
 
 def df_to_html_table(filtered, orig_df):
-    if filtered.empty:
-        return "<p>No results</p>"
+    if filtered.empty: return "<p>No results</p>"
     rows = []
     for idx, r in filtered.iterrows():
         i = r['_orig']
-        sym = r.get('symbol') or (orig_df.loc[i].get('Symbol') if i in orig_df.index else "")
-        name = r.get('name') or (orig_df.loc[i].get('Description') if i in orig_df.index else "")
-        close_val = r.get('close') or (orig_df.loc[i].get('Price') if i in orig_df.index else "")
+        sym = r.get('symbol') or ""
+        name = r.get('name') or ""
+        close_val = r.get('close')
         change = r.get('change_pct')
         rows.append({
             "Symbol": sym,
@@ -165,12 +143,11 @@ def df_to_html_table(filtered, orig_df):
             "Change %": f"{change:.1f}%" if change is not None else "",
             "Market Cap": format_mcap(r.get('mcap_num'))
         })
-    df_out = pd.DataFrame(rows)
-    return df_out.to_html(index=False, escape=False)
+    return pd.DataFrame(rows).to_html(index=False, escape=False)
 
 def send_email_html(subject, html_body):
     if not (FROM_EMAIL and SMTP_PASS and TO_EMAIL):
-        raise RuntimeError("Missing FROM_EMAIL / SMTP_PASS / TO_EMAIL environment variables.")
+        raise RuntimeError("Missing FROM_EMAIL / SMTP_PASS / TO_EMAIL env vars.")
     message = f"From: {FROM_EMAIL}\r\nTo: {TO_EMAIL}\r\nSubject: {subject}\r\nMIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n{html_body}"
     recipients = [e.strip() for e in TO_EMAIL.split(",") if e.strip()]
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
@@ -181,32 +158,29 @@ def send_email_html(subject, html_body):
 
 def main():
     print("Starting fetch at", datetime.datetime.utcnow().isoformat(), "UTC")
-
     parts = []
 
+    # NOON (Europe)
     if RUN_TYPE in ("NOON", "BOTH"):
-        df = fetch_tradingview_screener("europe")
-        print("DEBUG: Raw columns:", df.columns.tolist())
-        print("DEBUG: Sample rows:", df.head(5).to_dict())
-        df_norm = normalize_df(df)
-        noon_filtered = filter_by_rules(df_norm, NOON_COUNTRIES, NOON_CHANGE_THRESHOLD, NOON_MCAP_MIN, NOON_MCAP_MAX)
-        parts.append(f"<h2>Market Losers — {NOON_TIME_LABEL}</h2>")
-        parts.append(df_to_html_table(noon_filtered, df))
+        for market in ["uk", "france", "germany", "switzerland"]:
+            df = fetch_tradingview_screener(market)
+            df_norm = normalize_df(df)
+            noon_filtered = filter_by_rules(df_norm, NOON_COUNTRIES, NOON_CHANGE_THRESHOLD, NOON_MCAP_MIN, NOON_MCAP_MAX)
+            parts.append(f"<h2>Market Losers — {NOON_TIME_LABEL} ({market.upper()})</h2>")
+            parts.append(df_to_html_table(noon_filtered, df))
 
+    # PM (USA)
     if RUN_TYPE in ("PM", "BOTH"):
         df = fetch_tradingview_screener("america")
-        print("DEBUG: Raw columns:", df.columns.tolist())
-        print("DEBUG: Sample rows:", df.head(5).to_dict())
         df_norm = normalize_df(df)
         pm_filtered = filter_by_rules(df_norm, PM_COUNTRIES, PM_CHANGE_THRESHOLD, PM_MCAP_MIN, PM_MCAP_MAX)
-        parts.append(f"<h2>Market Losers — {PM_TIME_LABEL}</h2>")
+        parts.append(f"<h2>Market Losers — {PM_TIME_LABEL} (USA)</h2>")
         parts.append(df_to_html_table(pm_filtered, df))
 
     subject = f"Daily Market Losers — {datetime.date.today().isoformat()}"
     html_body = "<html><body>" + "<br><br>".join(parts) + "</body></html>"
     send_email_html(subject, html_body)
-    print("Email sent:", subject)
+    print("✅ Email sent:", subject)
 
 if __name__ == "__main__":
     main()
-
