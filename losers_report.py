@@ -128,7 +128,7 @@ def fetch_tradingview_screener(region):
     except Exception as e:
         raise RuntimeError(f"Failed to fetch screener data for {region}: {e}")
 
-    }
+    
     full_url = f"{url}?_={random.randint(100000,999999)}"
     r = requests.post(full_url, json=payload, timeout=30)
     r.raise_for_status()
