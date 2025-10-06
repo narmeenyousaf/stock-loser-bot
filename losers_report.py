@@ -92,14 +92,42 @@ def normalize_df(df):
     return out
 
 def fetch_tradingview_screener(region):
-    """Fetch TradingView screener by region (uk, france, germany, switzerland, america)."""
-    url = f"https://scanner.tradingview.com/{region}/scan"
+    """Fetch TradingView screener with proper filters by region."""
+    url = "https://scanner.tradingview.com/screener"
     payload = {
-        "symbols": {"tickers": [], "query": {"types": []}},
+        "filter": [
+            {"left": "country", "operation": "equal", "right": region}
+        ],
+        "options": {"lang": "en"},
         "columns": [
             "symbol", "description", "close", "change", "change_abs",
             "market_cap_basic", "country"
         ]
+    }
+
+    try:
+        r = requests.post(url, json=payload, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        data = body.get("data", [])
+        rows = []
+        for item in data:
+            symbol = item.get("s")
+            vals = item.get("d", [])
+            row = {
+                "symbol": symbol,
+                "description": vals[1] if len(vals) > 1 else None,
+                "close": vals[2] if len(vals) > 2 else None,
+                "change": vals[3] if len(vals) > 3 else None,
+                "change_abs": vals[4] if len(vals) > 4 else None,
+                "market_cap_basic": vals[5] if len(vals) > 5 else None,
+                "country": vals[6] if len(vals) > 6 else None
+            }
+            rows.append(row)
+        return pd.DataFrame(rows)
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch screener data for {region}: {e}")
+
     }
     full_url = f"{url}?_={random.randint(100000,999999)}"
     r = requests.post(full_url, json=payload, timeout=30)
